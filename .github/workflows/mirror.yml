@@ -1,0 +1,22 @@
+name: Mirror to GitLab
+on:
+  push:
+    branches: ["**"]
+    tags: ["**"]
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Push branches and tags to GitLab
+        run: |
+          git remote add gitlab https://oauth2:${GITLAB_TOKEN}@gitlab.cranecloud.io/2026-se4-final-year-projects/bse26-12/bloodlifesaver/bloodlifesaver.git
+          # Push all branches
+          git push gitlab --all
+          # Push all tags
+          git push gitlab --tags
+        env:
+          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}

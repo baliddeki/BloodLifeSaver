@@ -58,4 +58,3 @@
 ## Expected Outcome
 
 A **fully deployed MVP** showcasing real-time donor–hospital connectivity, smooth module integration, and automated DevOps workflows. The project demonstrates understanding of system integration, testing, and agile software development using modern cloud-based technologies.
-
