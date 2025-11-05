@@ -4,9 +4,9 @@ import helmet from 'helmet';
 import dotenv from 'dotenv';
 
 // Import routes
-import donorRoutes from './src/routes/donorRoutes';
-import requestRoutes from './src/routes/requestRoutes';
-import adminRoutes from './src/routes/adminRoutes';
+import donorRoutes from './routes/donorRoutes';
+import requestRoutes from './routes/requestRoutes';
+import adminRoutes from './routes/adminRoutes';
 
 // Load environment variables
 dotenv.config();
