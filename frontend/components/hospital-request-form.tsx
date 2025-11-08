@@ -1,48 +1,60 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { useAuth } from "@/contexts/auth"
+import { requestApi } from "@/lib/api"
 
 const bloodTypes = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
 const urgencyLevels = ["Low", "Medium", "High", "Critical"]
 
 export function HospitalRequestForm() {
+  const router = useRouter()
+  const { user } = useAuth()
   const [formData, setFormData] = useState({
-    hospitalName: "",
-    bloodType: "",
+    hospital_name: "",
+    blood_type: "",
     units: "",
     urgency: "",
     reason: "",
-    contactPerson: "",
+    contact_person: "",
     phone: "",
   })
+  const [error, setError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("[v0] Hospital request data:", formData)
-    setIsSubmitted(true)
+    setError("")
+    setIsLoading(true)
 
-    // Reset form after 3 seconds
-    setTimeout(() => {
-      setIsSubmitted(false)
-      setFormData({
-        hospitalName: "",
-        bloodType: "",
-        units: "",
-        urgency: "",
-        reason: "",
-        contactPerson: "",
-        phone: "",
+    try {
+      await requestApi.create({
+        hospital_name: formData.hospital_name,
+        blood_type: formData.blood_type,
+        units: parseInt(formData.units),
+        urgency: formData.urgency,
+        reason: formData.reason,
+        contact_person: formData.contact_person,
+        phone: formData.phone,
       })
-    }, 3000)
+
+      setIsSubmitted(true)
+      setTimeout(() => {
+        router.push("/dashboard")
+      }, 2000)
+    } catch (err: any) {
+      setError(err.message || "Failed to submit request")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleChange = (field: string, value: string) => {
@@ -70,7 +82,7 @@ export function HospitalRequestForm() {
               </div>
             </div>
             <h3 className="text-2xl font-bold text-black mb-2">Request Submitted!</h3>
-            <p className="text-gray-600">Your blood request has been sent to the admin for approval.</p>
+            <p className="text-gray-600">Redirecting to dashboard...</p>
           </div>
         </CardContent>
       </Card>
@@ -85,25 +97,27 @@ export function HospitalRequestForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded text-red-600 text-sm">
+              {error}
+            </div>
+          )}
+
           <div className="space-y-2">
-            <Label htmlFor="hospitalName" className="text-black">
-              Hospital Name
-            </Label>
+            <Label htmlFor="hospital_name" className="text-black">Hospital Name</Label>
             <Input
-              id="hospitalName"
+              id="hospital_name"
               placeholder="Enter hospital name"
-              value={formData.hospitalName}
-              onChange={(e) => handleChange("hospitalName", e.target.value)}
+              value={formData.hospital_name}
+              onChange={(e) => handleChange("hospital_name", e.target.value)}
               required
               className="border-gray-300 focus:border-black"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="bloodType" className="text-black">
-              Blood Type Needed
-            </Label>
-            <Select value={formData.bloodType} onValueChange={(value) => handleChange("bloodType", value)} required>
+            <Label htmlFor="blood_type" className="text-black">Blood Type Needed</Label>
+            <Select value={formData.blood_type} onValueChange={(value) => handleChange("blood_type", value)} required>
               <SelectTrigger className="border-gray-300 focus:border-black">
                 <SelectValue placeholder="Select blood type" />
               </SelectTrigger>
@@ -118,13 +132,11 @@ export function HospitalRequestForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="units" className="text-black">
-              Number of Units
-            </Label>
+            <Label htmlFor="units" className="text-black">Units Required</Label>
             <Input
               id="units"
               type="number"
-              placeholder="Enter number of units"
+              placeholder="Number of units"
               value={formData.units}
               onChange={(e) => handleChange("units", e.target.value)}
               required
@@ -134,9 +146,7 @@ export function HospitalRequestForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="urgency" className="text-black">
-              Urgency Level
-            </Label>
+            <Label htmlFor="urgency" className="text-black">Urgency Level</Label>
             <Select value={formData.urgency} onValueChange={(value) => handleChange("urgency", value)} required>
               <SelectTrigger className="border-gray-300 focus:border-black">
                 <SelectValue placeholder="Select urgency level" />
@@ -152,41 +162,34 @@ export function HospitalRequestForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="reason" className="text-black">
-              Reason for Request
-            </Label>
+            <Label htmlFor="reason" className="text-black">Reason (Optional)</Label>
             <Textarea
               id="reason"
-              placeholder="Describe the reason for this request"
+              placeholder="Brief description of the need"
               value={formData.reason}
               onChange={(e) => handleChange("reason", e.target.value)}
-              required
-              className="border-gray-300 focus:border-black min-h-20"
+              className="border-gray-300 focus:border-black"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="contactPerson" className="text-black">
-              Contact Person
-            </Label>
+            <Label htmlFor="contact_person" className="text-black">Contact Person</Label>
             <Input
-              id="contactPerson"
-              placeholder="Enter contact person name"
-              value={formData.contactPerson}
-              onChange={(e) => handleChange("contactPerson", e.target.value)}
+              id="contact_person"
+              placeholder="Name of contact person"
+              value={formData.contact_person}
+              onChange={(e) => handleChange("contact_person", e.target.value)}
               required
               className="border-gray-300 focus:border-black"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="phone" className="text-black">
-              Phone Number
-            </Label>
+            <Label htmlFor="phone" className="text-black">Phone Number</Label>
             <Input
               id="phone"
               type="tel"
-              placeholder="Enter phone number"
+              placeholder="Contact phone number"
               value={formData.phone}
               onChange={(e) => handleChange("phone", e.target.value)}
               required
@@ -194,8 +197,8 @@ export function HospitalRequestForm() {
             />
           </div>
 
-          <Button type="submit" className="w-full bg-black text-white hover:bg-gray-800">
-            Submit Request
+          <Button type="submit" className="w-full bg-black text-white hover:bg-gray-800" disabled={isLoading}>
+            {isLoading ? "Submitting..." : "Submit Request"}
           </Button>
         </form>
       </CardContent>

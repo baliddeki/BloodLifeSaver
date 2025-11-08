@@ -14,6 +14,11 @@ export default function HomePage() {
               <Droplet className="h-8 w-8 text-black" />
               <h1 className="text-2xl font-bold text-black">BloodLifeSaver</h1>
             </div>
+            <Link href="/login">
+              <Button variant="outline" className="border-black text-black hover:bg-gray-100">
+                Login
+              </Button>
+            </Link>
           </div>
         </div>
       </header>
@@ -42,9 +47,16 @@ export default function HomePage() {
                 Register as a blood donor and help save lives
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex justify-center">
+            <CardContent className="flex flex-col gap-2">
               <Link href="/donor">
-                <Button className="bg-black text-white hover:bg-gray-800">Register as Donor</Button>
+                <Button className="w-full bg-black text-white hover:bg-gray-800">
+                  Register as Donor
+                </Button>
+              </Link>
+              <Link href="/login">
+                <Button variant="outline" className="w-full border-gray-300 text-black hover:bg-gray-100">
+                  Donor Login
+                </Button>
               </Link>
             </CardContent>
           </Card>
@@ -62,9 +74,16 @@ export default function HomePage() {
                 Request blood types and manage your needs
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex justify-center">
-              <Link href="/hospital">
-                <Button className="bg-black text-white hover:bg-gray-800">Hospital Dashboard</Button>
+            <CardContent className="flex flex-col gap-2">
+              <Link href="/hospital/register">
+                <Button className="w-full bg-black text-white hover:bg-gray-800">
+                  Register Hospital
+                </Button>
+              </Link>
+              <Link href="/login">
+                <Button variant="outline" className="w-full border-gray-300 text-black hover:bg-gray-100">
+                  Hospital Login
+                </Button>
               </Link>
             </CardContent>
           </Card>
@@ -82,21 +101,19 @@ export default function HomePage() {
                 Manage donors, requests, and system operations
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex justify-center">
-              <Link href="/admin">
-                <Button className="bg-black text-white hover:bg-gray-800">Admin Dashboard</Button>
+            <CardContent className="flex flex-col gap-2">
+              <Link href="/login">
+                <Button className="w-full bg-black text-white hover:bg-gray-800">
+                  Admin Login
+                </Button>
               </Link>
+              <p className="text-xs text-center text-gray-500 mt-2">
+                Admin accounts are created by system administrators
+              </p>
             </CardContent>
           </Card>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="border-t border-gray-200 mt-16">
-        <div className="container mx-auto px-4 py-8">
-          <p className="text-center text-gray-600">BloodLifeSaver - Connecting donors with hospitals to save lives</p>
-        </div>
-      </footer>
     </div>
   )
 }

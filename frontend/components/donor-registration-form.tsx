@@ -1,44 +1,61 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useAuth } from "@/contexts/auth"
+import { donorApi } from "@/lib/api"
 
 const bloodTypes = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
 
 export function DonorRegistrationForm() {
+  const router = useRouter()
+  const { register } = useAuth()
   const [formData, setFormData] = useState({
     name: "",
     age: "",
-    bloodType: "",
-    lastDonationDate: "",
+    blood_type: "",
+    last_donation_date: "",
     phone: "",
     email: "",
+    password: "",
   })
+  const [error, setError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("[v0] Donor registration data:", formData)
-    setIsSubmitted(true)
+    setError("")
+    setIsLoading(true)
 
-    // Reset form after 3 seconds
-    setTimeout(() => {
-      setIsSubmitted(false)
-      setFormData({
-        name: "",
-        age: "",
-        bloodType: "",
-        lastDonationDate: "",
-        phone: "",
-        email: "",
+    try {
+      // Register user account
+      await register(formData.email, formData.password, "donor", formData.name)
+
+      // Register as donor
+      await donorApi.register({
+        name: formData.name,
+        age: parseInt(formData.age),
+        blood_type: formData.blood_type,
+        last_donation_date: formData.last_donation_date || null,
+        phone: formData.phone,
+        email: formData.email,
       })
-    }, 3000)
+
+      setIsSubmitted(true)
+      setTimeout(() => {
+        router.push("/dashboard")
+      }, 2000)
+    } catch (err: any) {
+      setError(err.message || "Registration failed")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleChange = (field: string, value: string) => {
@@ -66,7 +83,7 @@ export function DonorRegistrationForm() {
               </div>
             </div>
             <h3 className="text-2xl font-bold text-black mb-2">Registration Successful!</h3>
-            <p className="text-gray-600">Thank you for registering as a blood donor.</p>
+            <p className="text-gray-600">Redirecting to dashboard...</p>
           </div>
         </CardContent>
       </Card>
@@ -81,10 +98,14 @@ export function DonorRegistrationForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded text-red-600 text-sm">
+              {error}
+            </div>
+          )}
+
           <div className="space-y-2">
-            <Label htmlFor="name" className="text-black">
-              Full Name
-            </Label>
+            <Label htmlFor="name" className="text-black">Full Name</Label>
             <Input
               id="name"
               placeholder="Enter your full name"
@@ -96,9 +117,34 @@ export function DonorRegistrationForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="age" className="text-black">
-              Age
-            </Label>
+            <Label htmlFor="email" className="text-black">Email Address</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="your@email.com"
+              value={formData.email}
+              onChange={(e) => handleChange("email", e.target.value)}
+              required
+              className="border-gray-300 focus:border-black"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password" className="text-black">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="At least 6 characters"
+              value={formData.password}
+              onChange={(e) => handleChange("password", e.target.value)}
+              required
+              minLength={6}
+              className="border-gray-300 focus:border-black"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="age" className="text-black">Age</Label>
             <Input
               id="age"
               type="number"
@@ -113,10 +159,8 @@ export function DonorRegistrationForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="bloodType" className="text-black">
-              Blood Type
-            </Label>
-            <Select value={formData.bloodType} onValueChange={(value) => handleChange("bloodType", value)} required>
+            <Label htmlFor="blood_type" className="text-black">Blood Type</Label>
+            <Select value={formData.blood_type} onValueChange={(value) => handleChange("blood_type", value)} required>
               <SelectTrigger className="border-gray-300 focus:border-black">
                 <SelectValue placeholder="Select your blood type" />
               </SelectTrigger>
@@ -131,26 +175,22 @@ export function DonorRegistrationForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="lastDonationDate" className="text-black">
-              Last Donation Date
-            </Label>
+            <Label htmlFor="last_donation_date" className="text-black">Last Donation Date (Optional)</Label>
             <Input
-              id="lastDonationDate"
+              id="last_donation_date"
               type="date"
-              value={formData.lastDonationDate}
-              onChange={(e) => handleChange("lastDonationDate", e.target.value)}
+              value={formData.last_donation_date}
+              onChange={(e) => handleChange("last_donation_date", e.target.value)}
               className="border-gray-300 focus:border-black"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="phone" className="text-black">
-              Phone Number
-            </Label>
+            <Label htmlFor="phone" className="text-black">Phone Number</Label>
             <Input
               id="phone"
               type="tel"
-              placeholder="Enter your phone number"
+              placeholder="0700123456"
               value={formData.phone}
               onChange={(e) => handleChange("phone", e.target.value)}
               required
@@ -158,23 +198,8 @@ export function DonorRegistrationForm() {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-black">
-              Email Address
-            </Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="Enter your email"
-              value={formData.email}
-              onChange={(e) => handleChange("email", e.target.value)}
-              required
-              className="border-gray-300 focus:border-black"
-            />
-          </div>
-
-          <Button type="submit" className="w-full bg-black text-white hover:bg-gray-800">
-            Register as Donor
+          <Button type="submit" className="w-full bg-black text-white hover:bg-gray-800" disabled={isLoading}>
+            {isLoading ? "Registering..." : "Register as Donor"}
           </Button>
         </form>
       </CardContent>
