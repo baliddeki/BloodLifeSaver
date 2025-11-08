@@ -14,6 +14,14 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!isLoading && !user) {
       router.push("/login")
+    } else if (!isLoading && user) {
+      // Route to role-specific dashboards
+      if (user.role === "hospital") {
+        router.push("/hospital/dashboard")
+      } else if (user.role === "admin") {
+        router.push("/admin")
+      }
+      // Donors stay on this page
     }
   }, [user, isLoading, router])
 
@@ -55,40 +63,26 @@ export default function DashboardPage() {
             <p className="text-gray-600">Role: {user.role.toUpperCase()}</p>
           </div>
 
-          {/* Role-specific content */}
+          {/* Donor-specific content */}
           {user.role === "donor" && (
             <div className="space-y-6">
-              <div className="p-6 bg-gray-50 rounded-lg">
-                <h3 className="text-xl font-semibold mb-2">Your Donor Profile</h3>
-                <p className="text-gray-600">Thank you for being a blood donor! Your contributions save lives.</p>
+              <div className="p-6 bg-gray-50 rounded-lg border-2 border-gray-200">
+                <h3 className="text-xl font-semibold mb-2 text-black">Your Donor Profile</h3>
+                <p className="text-gray-600 mb-4">Thank you for being a blood donor! Your contributions save lives.</p>
+                <div className="space-y-2 text-sm text-gray-700">
+                  <p><strong>Email:</strong> {user.email}</p>
+                  <p><strong>Status:</strong> Active Donor</p>
+                </div>
               </div>
-            </div>
-          )}
 
-          {user.role === "hospital" && (
-            <div className="space-y-6">
-              <div className="p-6 bg-gray-50 rounded-lg">
-                <h3 className="text-xl font-semibold mb-2">Hospital Dashboard</h3>
-                <p className="text-gray-600 mb-4">Manage your blood requests and view available donors.</p>
-                <Link href="/hospital">
-                  <Button className="bg-black text-white hover:bg-gray-800">
-                    Create New Request
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          )}
-
-          {user.role === "admin" && (
-            <div className="space-y-6">
-              <div className="p-6 bg-gray-50 rounded-lg">
-                <h3 className="text-xl font-semibold mb-2">Admin Dashboard</h3>
-                <p className="text-gray-600 mb-4">Manage all donors, requests, and system operations.</p>
-                <Link href="/admin">
-                  <Button className="bg-black text-white hover:bg-gray-800">
-                    Go to Admin Panel
-                  </Button>
-                </Link>
+              <div className="p-6 bg-gray-50 rounded-lg border-2 border-gray-200">
+                <h3 className="text-xl font-semibold mb-2 text-black">How It Works</h3>
+                <ol className="list-decimal list-inside space-y-2 text-gray-700">
+                  <li>Your information is stored in our donor database</li>
+                  <li>Hospitals can view available donors by blood type</li>
+                  <li>When there's a match, hospitals will contact you directly</li>
+                  <li>You decide when you're available to donate</li>
+                </ol>
               </div>
             </div>
           )}

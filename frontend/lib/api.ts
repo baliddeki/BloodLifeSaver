@@ -41,45 +41,48 @@ export async function apiRequest(endpoint: string, options: ApiOptions = {}) {
 
 // Donor API calls
 export const donorApi = {
-  register: (donorData: any) => 
+  register: (donorData: any) =>
     apiRequest('/api/donors', { method: 'POST', body: donorData }),
-  
-  getAll: () => 
+
+  getAll: () =>
     apiRequest('/api/donors'),
-  
-  getById: (id: string) => 
+
+  getById: (id: string) =>
     apiRequest(`/api/donors/${id}`),
-  
-  getByBloodType: (bloodType: string) => 
+
+  getByBloodType: (bloodType: string) =>
     apiRequest(`/api/donors/blood-type/${bloodType}`),
+
+  delete: (id: string) =>
+    apiRequest(`/api/donors/${id}`, { method: 'DELETE' }),
 }
 
 // Request API calls
 export const requestApi = {
-  create: (requestData: any) => 
+  create: (requestData: any) =>
     apiRequest('/api/requests', { method: 'POST', body: requestData }),
-  
-  getAll: (status?: string) => 
+
+  getAll: (status?: string) =>
     apiRequest(`/api/requests${status ? `?status=${status}` : ''}`),
-  
-  getById: (id: string) => 
+
+  getById: (id: string) =>
     apiRequest(`/api/requests/${id}`),
-  
-  updateStatus: (id: string, status: string) => 
+
+  updateStatus: (id: string, status: string) =>
     apiRequest(`/api/requests/${id}/status`, { method: 'PATCH', body: { status } }),
-  
-  delete: (id: string) => 
+
+  delete: (id: string) =>
     apiRequest(`/api/requests/${id}`, { method: 'DELETE' }),
 }
 
 // Admin API calls
 export const adminApi = {
-  getStats: () => 
+  getStats: () =>
     apiRequest('/api/admin/stats'),
-  
-  getBloodDistribution: () => 
+
+  getBloodDistribution: () =>
     apiRequest('/api/admin/blood-distribution'),
-  
-  getRecentActivity: () => 
+
+  getRecentActivity: () =>
     apiRequest('/api/admin/recent-activity'),
 }
