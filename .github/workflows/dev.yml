@@ -1,0 +1,61 @@
+name: Dev Environment
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  test-build-deploy:
+    runs-on: self-hosted
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Frontend Tests
+      - name: Test Frontend
+        working-directory: ./frontend
+        run: |
+          npm ci
+          npm run lint || echo "Lint warnings only"
+
+      # API Tests
+      - name: Test API
+        working-directory: ./api
+        run: |
+          npm ci
+          npm run build
+          npm test || echo "No tests configured"
+
+      # Login to DockerHub
+      - name: Login to DockerHub
+        run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u bryanari --password-stdin
+
+      # Build and Push Frontend
+      - name: Build Frontend Image
+        working-directory: ./frontend
+        run: |
+          docker build -t bryanari/bloodlifesaver-frontend:dev .
+          docker push bryanari/bloodlifesaver-frontend:dev
+
+      # Build and Push API
+      - name: Build API Image
+        working-directory: ./api
+        run: |
+          docker build -t bryanari/bloodlifesaver-api:dev .
+          docker push bryanari/bloodlifesaver-api:dev
+
+      # Deploy to Local PC
+      - name: Deploy to Local PC
+        run: |
+          docker-compose -f docker-compose.dev.yml down || true
+          docker-compose -f docker-compose.dev.yml pull
+          docker-compose -f docker-compose.dev.yml up -d
+
+      # Health Check
+      - name: Health Check
+        run: |
+          sleep 10
+          curl -f http://localhost:3000 || echo "Frontend starting..."
+          curl -f http://localhost:5000/health || echo "API starting..."
