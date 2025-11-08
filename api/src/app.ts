@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import dotenv from 'dotenv';
 
 // Import routes
+import authRoutes from './routes/authRoutes';
 import donorRoutes from './routes/donorRoutes';
 import requestRoutes from './routes/requestRoutes';
 import adminRoutes from './routes/adminRoutes';
@@ -39,6 +40,7 @@ app.get('/health', (req: Request, res: Response) => {
 });
 
 // API Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/donors', donorRoutes);
 app.use('/api/requests', requestRoutes);
 app.use('/api/admin', adminRoutes);

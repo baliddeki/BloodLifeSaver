@@ -6,42 +6,43 @@ import {
     getDonorsByBloodType,
     deleteDonor,
 } from '../controllers/donorController';
+import { authenticate, authorize } from '../middleware/auth';
 
 const router = Router();
 
 /**
  * @route   POST /api/donors
  * @desc    Register a new donor
- * @access  Public
+ * @access  Private (Donor only)
  */
-router.post('/', registerDonor);
+router.post('/', authenticate, authorize('donor'), registerDonor);
 
 /**
  * @route   GET /api/donors
  * @desc    Get all donors
- * @access  Public
+ * @access  Private (Hospital, Admin)
  */
-router.get('/', getAllDonors);
+router.get('/', authenticate, authorize('hospital', 'admin'), getAllDonors);
 
 /**
  * @route   GET /api/donors/:id
  * @desc    Get donor by ID
- * @access  Public
+ * @access  Private (Hospital, Admin)
  */
-router.get('/:id', getDonorById);
+router.get('/:id', authenticate, authorize('hospital', 'admin'), getDonorById);
 
 /**
  * @route   GET /api/donors/blood-type/:bloodType
  * @desc    Get donors by blood type
- * @access  Public
+ * @access  Private (Hospital, Admin)
  */
-router.get('/blood-type/:bloodType', getDonorsByBloodType);
+router.get('/blood-type/:bloodType', authenticate, authorize('hospital', 'admin'), getDonorsByBloodType);
 
 /**
  * @route   DELETE /api/donors/:id
  * @desc    Delete a donor
- * @access  Admin
+ * @access  Private (Admin only)
  */
-router.delete('/:id', deleteDonor);
+router.delete('/:id', authenticate, authorize('admin'), deleteDonor);
 
 export default router;
