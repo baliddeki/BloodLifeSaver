@@ -14,7 +14,6 @@ image: docker:24.0.7
 before_script:
   - docker info
 
-# Test Stage
 test_frontend:
   stage: test
   script:
@@ -31,29 +30,22 @@ test_api:
   only:
     - main
 
-# Build Stage
 build:
   stage: build
   script:
-    # Login to DockerHub
     - echo $DOCKERHUB_PASSWORD | docker login -u bryanari --password-stdin
-
-    # Get version from package.json or use timestamp
     - export VERSION=$(date +%Y%m%d-%H%M%S)
     
-    # Build and push frontend
     - cd frontend
     - docker build -t $FRONTEND_IMAGE:$VERSION -t $FRONTEND_IMAGE:latest .
     - docker push $FRONTEND_IMAGE:$VERSION
     - docker push $FRONTEND_IMAGE:latest
     
-    # Build and push API
     - cd ../api
     - docker build -t $API_IMAGE:$VERSION -t $API_IMAGE:latest .
     - docker push $API_IMAGE:$VERSION
     - docker push $API_IMAGE:latest
     
-    # Save version for deploy stage
     - echo $VERSION > ../version.txt
   artifacts:
     paths:
@@ -62,7 +54,6 @@ build:
   only:
     - main
 
-# Deploy Stage
 deploy:
   stage: deploy
   before_script:
@@ -79,16 +70,28 @@ deploy:
   script:
     - export VERSION=$(cat version.txt)
     
+    # Create deployment directory on server
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "mkdir -p /home/mulindwabryan.aliddeki/bloodlifesaver"
+    
+    # Create .env file on server from CI/CD variables
+    - |
+      ssh $DEPLOY_USER@$DEPLOY_HOST "cat > /home/mulindwabryan.aliddeki/bloodlifesaver/.env << EOF
+      DATABASE_URL=$DATABASE_URL
+      JWT_SECRET=$JWT_SECRET
+      NEXT_PUBLIC_API_URL=http://ldapgit.cranecloud.io:31083
+      NODE_ENV=production
+      EOF"
+    
+    # Copy docker-compose file to server
+    - scp docker-compose.prod.yml $DEPLOY_USER@$DEPLOY_HOST:/home/mulindwabryan.aliddeki/bloodlifesaver/
+    
     # Login to DockerHub on server
     - ssh $DEPLOY_USER@$DEPLOY_HOST "echo '$DOCKERHUB_PASSWORD' | docker login -u bryanari --password-stdin"
     
-    # Pull latest images
+    # Pull and deploy
     - ssh $DEPLOY_USER@$DEPLOY_HOST "docker pull $FRONTEND_IMAGE:latest"
     - ssh $DEPLOY_USER@$DEPLOY_HOST "docker pull $API_IMAGE:latest"
-    
-    # Deploy with docker-compose
     - ssh $DEPLOY_USER@$DEPLOY_HOST "cd /home/mulindwabryan.aliddeki/bloodlifesaver && docker-compose -f docker-compose.prod.yml down || true"
-    - ssh $DEPLOY_USER@$DEPLOY_HOST "cd /home/mulindwabryan.aliddeki/bloodlifesaver && docker-compose -f docker-compose.prod.yml pull"
     - ssh $DEPLOY_USER@$DEPLOY_HOST "cd /home/mulindwabryan.aliddeki/bloodlifesaver && docker-compose -f docker-compose.prod.yml up -d"
     
     # Health check

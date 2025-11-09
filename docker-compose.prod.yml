@@ -5,8 +5,8 @@ services:
     image: bryanari/bloodlifesaver-frontend:latest
     ports:
       - "30083:3000"
-    environment:
-      - NEXT_PUBLIC_API_URL=http://ldapgit.cranecloud.io:31083
+    env_file:
+      - .env
     restart: unless-stopped
     deploy:
       resources:
@@ -18,10 +18,8 @@ services:
     image: bryanari/bloodlifesaver-api:latest
     ports:
       - "31083:5000"
-    environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - JWT_SECRET=${JWT_SECRET}
-      - NODE_ENV=production
+    env_file:
+      - .env
     restart: unless-stopped
     deploy:
       resources:

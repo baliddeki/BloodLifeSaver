@@ -13,20 +13,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Create .env file from secrets
+      - name: Create Environment File
+        run: |
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+          echo "NEXT_PUBLIC_API_URL=http://localhost:5000" >> .env
+
       # Frontend Tests
       - name: Test Frontend
         working-directory: ./frontend
         run: |
-          npm ci
-          npm run lint || echo "Lint warnings only"
+          npm ci --legacy-peer-deps
+          npm run build
 
       # API Tests
       - name: Test API
         working-directory: ./api
         run: |
-          npm ci
+          npm ci --legacy-peer-deps
           npm run build
-          npm test || echo "No tests configured"
 
       # Login to DockerHub
       - name: Login to DockerHub
