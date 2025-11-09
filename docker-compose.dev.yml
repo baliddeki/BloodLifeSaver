@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  frontend:
+    image: bryanari/bloodlifesaver-frontend:dev
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+
+  api:
+    image: bryanari/bloodlifesaver-api:dev
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
