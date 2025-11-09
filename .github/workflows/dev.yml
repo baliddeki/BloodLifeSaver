@@ -58,9 +58,12 @@ jobs:
 
       - name: Create Environment File
         run: |
-          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
+          echo "SUPABASE_DB_URL=${{ secrets.DATABASE_URL }}" > .env
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+          echo "SUPABASE_ANON_KEY=${{ vars.SUPABASE_ANON_KEY }}"
+          echo "SUPABASE_URL=${{ vars.SUPABASE_URL }}"
           echo "NEXT_PUBLIC_API_URL=http://localhost:5000" >> .env
+          echo "PORT=${{ vars.PORT }}"
 
       - name: Deploy to Local PC
         run: |
