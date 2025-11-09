@@ -3,15 +3,15 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const PORT = process.env.PORT || 3001;
+const API_PORT = process.env.API_PORT || 3001;
 
 // Start server
-app.listen(PORT, () => {
+app.listen(API_PORT, () => {
   console.log('='.repeat(50));
   console.log(`🩸 BloodLifeSaver API Server`);
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${API_PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🏥 Health check: http://localhost:${PORT}/health`);
+  console.log(`🏥 Health check: http://localhost:${API_PORT}/health`);
   console.log('='.repeat(50));
 });
 
