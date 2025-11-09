@@ -16,13 +16,13 @@ jobs:
       - name: Test Frontend
         working-directory: ./frontend
         run: |
-          npm ci --legacy-peer-deps
+          npm install --legacy-peer-deps
           npm run build
 
       - name: Test API
         working-directory: ./api
         run: |
-          npm ci --legacy-peer-deps
+          npm install --legacy-peer-deps
           npm run build
 
   build:
