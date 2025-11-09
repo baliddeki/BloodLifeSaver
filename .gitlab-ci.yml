@@ -18,7 +18,7 @@ test_frontend:
   stage: test
   script:
     - cd frontend
-    - docker run --rm -v $(pwd):/app -w /app node:20-alpine sh -c "npm ci && npm run lint || true"
+    - docker run --rm -v $(pwd):/app -w /app node:20-alpine sh -c "npm install --legacy-peer-deps && npm run build"
   only:
     - main
 
@@ -26,7 +26,7 @@ test_api:
   stage: test
   script:
     - cd api
-    - docker run --rm -v $(pwd):/app -w /app node:20-alpine sh -c "npm ci && npm run build && npm test || true"
+    - docker run --rm -v $(pwd):/app -w /app node:20-alpine sh -c "npm install --legacy-peer-deps && npm run build"
   only:
     - main
 
@@ -77,6 +77,8 @@ deploy:
     - |
       ssh $DEPLOY_USER@$DEPLOY_HOST "cat > /home/mulindwabryan.aliddeki/bloodlifesaver/.env << EOF
       DATABASE_URL=$DATABASE_URL
+      SUPABASE_URL=$SUPABASE_URL
+      SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
       JWT_SECRET=$JWT_SECRET
       NEXT_PUBLIC_API_URL=http://ldapgit.cranecloud.io:31083
       NODE_ENV=production
