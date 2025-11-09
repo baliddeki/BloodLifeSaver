@@ -7,7 +7,7 @@ on:
 
 jobs:
   test:
-    runs-on: self-hosted
+    runs-on: self-hosted, dev
     
     steps:
       - name: Checkout code
@@ -26,7 +26,7 @@ jobs:
           npm run build
 
   build:
-    runs-on: self-hosted
+    runs-on: self-hosted, dev
     needs: test
     
     steps:
@@ -49,7 +49,7 @@ jobs:
           docker push bryanari/bloodlifesaver-api:dev
 
   deploy:
-    runs-on: self-hosted
+    runs-on: self-hosted, dev
     needs: build
     
     steps:
