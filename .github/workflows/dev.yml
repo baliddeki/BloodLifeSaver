@@ -60,10 +60,10 @@ jobs:
         run: |
           echo "SUPABASE_DB_URL=${{ secrets.DATABASE_URL }}" > .env
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
-          echo "SUPABASE_ANON_KEY=${{ vars.SUPABASE_ANON_KEY }}"
-          echo "SUPABASE_URL=${{ vars.SUPABASE_URL }}"
+          echo "SUPABASE_ANON_KEY=${{ vars.SUPABASE_ANON_KEY }}"  >> .env
+          echo "SUPABASE_URL=${{ vars.SUPABASE_URL }}"  >> .env
+          echo "PORT=${{ vars.PORT }}"  >> .env
           echo "NEXT_PUBLIC_API_URL=http://localhost:5000" >> .env
-          echo "PORT=${{ vars.PORT }}"
 
       - name: Deploy to Local PC
         run: |
