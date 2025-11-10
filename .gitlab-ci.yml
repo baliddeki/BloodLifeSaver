@@ -17,8 +17,8 @@ before_script:
 build:
   stage: build
   script:
-    # Login to DockerHub
-    - echo $DOCKERHUB_PASSWORD | docker login -u bryanari --password-stdin
+    # Login to DockerHub - use DOCKER_PASSWORD not DOCKERHUB_PASSWORD
+    - echo $DOCKER_PASSWORD | docker login -u bryanari --password-stdin
     
     # Generate version tag
     - export VERSION=$(date +%Y%m%d-%H%M%S)
@@ -58,9 +58,9 @@ deploy:
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
     
-    # Add private key (with quotes like working version)
+    # Add private key
     - cp "$SSH_PRIVATE_KEY" ~/.ssh/id_ed25519
-    - chmod 600 ~/.ssh/id_ecdsa
+    - chmod 600 ~/.ssh/id_ed25519
     - ssh-add ~/.ssh/id_ed25519
     
     # Add server to known hosts
@@ -88,8 +88,8 @@ deploy:
     # Copy docker-compose file to server
     - scp docker-compose.prod.yml "$DEPLOY_USER@$DEPLOY_HOST:/home/mulindwabryan.aliddeki/bloodlifesaver/"
     
-    # Login to DockerHub on server
-    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "echo '$DOCKERHUB_PASSWORD' | docker login -u bryanari --password-stdin"
+    # Login to DockerHub on server - use DOCKER_PASSWORD
+    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "echo '$DOCKER_PASSWORD' | docker login -u bryanari --password-stdin"
     
     # Pull latest images
     - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "docker pull $FRONTEND_IMAGE:latest"
