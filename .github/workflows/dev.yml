@@ -39,7 +39,7 @@ jobs:
       - name: Build and Push Frontend
         working-directory: ./frontend
         run: |
-          docker build -t bryanari/bloodlifesaver-frontend:dev .
+          docker build --build-arg NEXT_PUBLIC_API_URL=http://localhost:5000 -t bryanari/bloodlifesaver-frontend:dev .
           docker push bryanari/bloodlifesaver-frontend:dev
 
       - name: Build and Push API
