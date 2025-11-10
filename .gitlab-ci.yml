@@ -1,68 +1,100 @@
 stages:
+  - test
+  - build
   - deploy
 
-image: alpine:3.20
-
 variables:
-  # Your images are already fixed in docker-compose to :latest, so no tag juggling here
-  FRONTEND_IMAGE: "bryanari/bloodlifesaver-frontend"
-  API_IMAGE: "bryanari/bloodlifesaver-api"
-  # Adjust these if your server paths differ
-  DEPLOY_DIR: "/home/mulindwabryan.aliddeki/bloodlifesaver"
-  COMPOSE_FILE: "docker-compose.prod.yml"
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+  FRONTEND_IMAGE: bryanari/bloodlifesaver-frontend
+  API_IMAGE: bryanari/bloodlifesaver-api
 
-deploy_prod:
+image: docker:24.0.7
+
+before_script:
+  - docker info
+
+test_frontend:
+  stage: test
+  script:
+    - cd frontend
+    - docker run --rm -v $(pwd):/app -w /app node:20-alpine sh -c "npm ci --legacy-peer-deps && npm run build"
+  only:
+    - main
+
+test_api:
+  stage: test
+  script:
+    - cd api
+    - docker run --rm -v $(pwd):/app -w /app node:20-alpine sh -c "npm install --legacy-peer-deps && npm run build"
+  only:
+    - main
+
+build:
+  stage: build
+  script:
+    - echo $DOCKERHUB_PASSWORD | docker login -u bryanari --password-stdin
+    - export VERSION=$(date +%Y%m%d-%H%M%S)
+    
+    - cd frontend
+    - docker build -t $FRONTEND_IMAGE:$VERSION -t $FRONTEND_IMAGE:latest .
+    - docker push $FRONTEND_IMAGE:$VERSION
+    - docker push $FRONTEND_IMAGE:latest
+    
+    - cd ../api
+    - docker build -t $API_IMAGE:$VERSION -t $API_IMAGE:latest .
+    - docker push $API_IMAGE:$VERSION
+    - docker push $API_IMAGE:latest
+    
+    - echo $VERSION > ../version.txt
+  artifacts:
+    paths:
+      - version.txt
+    expire_in: 1 hour
+  only:
+    - main
+
+deploy:
   stage: deploy
   before_script:
-    - apk add --no-cache openssh-client curl
+    - apk add --no-cache openssh-client
     - eval $(ssh-agent -s)
-    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
-    # Use the same key type you uploaded (ed25519 or ecdsa). Change the filename if needed.
-    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    # Copy file directly (not echo)
+    - cp $SSH_PRIVATE_KEY ~/.ssh/id_ed25519
     - chmod 600 ~/.ssh/id_ed25519
     - ssh-add ~/.ssh/id_ed25519
     - ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
     - chmod 644 ~/.ssh/known_hosts
-
+  
   script:
-    # Ensure deployment dir exists
-    - ssh "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p $DEPLOY_DIR"
-
-    # Write/refresh .env on the server from GitLab CI/CD variables
+    - export VERSION=$(cat version.txt)
+    
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "mkdir -p /home/mulindwabryan.aliddeki/bloodlifesaver"
+    
     - |
-      ssh "$DEPLOY_USER@$DEPLOY_HOST" "cat > $DEPLOY_DIR/.env << 'EOF'
+      ssh $DEPLOY_USER@$DEPLOY_HOST "cat > /home/mulindwabryan.aliddeki/bloodlifesaver/.env << EOF
       SUPABASE_DB_URL=$SUPABASE_DB_URL
       SUPABASE_URL=$SUPABASE_URL
       SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
       JWT_SECRET=$JWT_SECRET
-      API_PORT=${API_PORT:-5000}
-      NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://ldapgit.cranecloud.io:31083}
+      API_PORT=$API_PORT
+      NEXT_PUBLIC_API_URL=http://ldapgit.cranecloud.io:31083
       NODE_ENV=production
       EOF"
-
-    # Ship (or update) your compose file on the server — this is the exact file you shared
-    - scp docker-compose.prod.yml "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_DIR/"
-
-    # Login to DockerHub on the server (pull happens on the server)
-    - ssh "$DEPLOY_USER@$DEPLOY_HOST" "echo '$DOCKERHUB_PASSWORD' | docker login -u bryanari --password-stdin"
-
-    # Pull and (re)start using your compose file AS-IS (images pinned to :latest in the file)
-    - |
-      ssh "$DEPLOY_USER@$DEPLOY_HOST" "
-        cd $DEPLOY_DIR &&
-        docker-compose -f $COMPOSE_FILE pull &&
-        docker-compose -f $COMPOSE_FILE up -d --remove-orphans
-      "
-
-    # Quick health checks (match your published ports)
-    - |
-      ssh "$DEPLOY_USER@$DEPLOY_HOST" "
-        echo '--- docker ps ---'
-        docker ps
-        echo '--- health checks ---'
-        (curl -fsS http://localhost:30083 || echo 'Frontend not ready yet')
-        (curl -fsS http://localhost:31083/health || echo 'API not ready yet')
-      "
-
+    
+    - scp docker-compose.prod.yml $DEPLOY_USER@$DEPLOY_HOST:/home/mulindwabryan.aliddeki/bloodlifesaver/
+    
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "echo '$DOCKERHUB_PASSWORD' | docker login -u bryanari --password-stdin"
+    
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "docker pull $FRONTEND_IMAGE:latest"
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "docker pull $API_IMAGE:latest"
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "cd /home/mulindwabryan.aliddeki/bloodlifesaver && docker-compose -f docker-compose.prod.yml down || true"
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "cd /home/mulindwabryan.aliddeki/bloodlifesaver && docker-compose -f docker-compose.prod.yml up -d"
+    
+    - sleep 10
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "docker ps | grep bloodlifesaver"
+    
   only:
     - main
