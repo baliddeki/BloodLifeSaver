@@ -10,28 +10,36 @@ variables:
 
 image: docker:24.0.7
 
+services:
+  - docker:24.0.7-dind
+
 before_script:
   - docker info
 
 build:
   stage: build
   script:
-    - echo $DOCKERHUB_PASSWORD | docker login -u bryanari --password-stdin
+    # Login to DockerHub
+    - echo "$DOCKERHUB_PASSWORD" | docker login -u bryanari --password-stdin
+    
+    # Generate version tag
     - export VERSION=$(date +%Y%m%d-%H%M%S)
     
-    # Build frontend (build fails if code has errors)
+    # Build and push frontend
     - cd frontend
     - docker build --build-arg NEXT_PUBLIC_API_URL=http://ldapgit.cranecloud.io:31083 -t $FRONTEND_IMAGE:$VERSION -t $FRONTEND_IMAGE:latest .
     - docker push $FRONTEND_IMAGE:$VERSION
     - docker push $FRONTEND_IMAGE:latest
     
-    # Build API (build fails if code has errors)
+    # Build and push API
     - cd ../api
     - docker build -t $API_IMAGE:$VERSION -t $API_IMAGE:latest .
     - docker push $API_IMAGE:$VERSION
     - docker push $API_IMAGE:latest
     
+    # Save version for deploy stage
     - echo $VERSION > ../version.txt
+    
   artifacts:
     paths:
       - version.txt
@@ -42,23 +50,35 @@ build:
 deploy:
   stage: deploy
   before_script:
+    # Install SSH client
     - apk add --no-cache openssh-client
+    
+    # Setup SSH agent
     - eval $(ssh-agent -s)
+    
+    # Create SSH directory
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
+    
+    # Add private key
     - cp $SSH_PRIVATE_KEY ~/.ssh/id_ed25519
     - chmod 600 ~/.ssh/id_ed25519
     - ssh-add ~/.ssh/id_ed25519
+    
+    # Add server to known hosts
     - ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
     - chmod 644 ~/.ssh/known_hosts
   
   script:
+    # Get version from build stage
     - export VERSION=$(cat version.txt)
     
+    # Create deployment directory on server
     - ssh $DEPLOY_USER@$DEPLOY_HOST "mkdir -p /home/mulindwabryan.aliddeki/bloodlifesaver"
     
+    # Create .env file on server
     - |
-      ssh $DEPLOY_USER@$DEPLOY_HOST "cat > /home/mulindwabryan.aliddeki/bloodlifesaver/.env << EOF
+      ssh $DEPLOY_USER@$DEPLOY_HOST "cat > /home/mulindwabryan.aliddeki/bloodlifesaver/.env << 'EOF'
       SUPABASE_DB_URL=$SUPABASE_DB_URL
       SUPABASE_URL=$SUPABASE_URL
       SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
@@ -68,15 +88,23 @@ deploy:
       NODE_ENV=production
       EOF"
     
+    # Copy docker-compose file to server
     - scp docker-compose.prod.yml $DEPLOY_USER@$DEPLOY_HOST:/home/mulindwabryan.aliddeki/bloodlifesaver/
     
+    # Login to DockerHub on server
     - ssh $DEPLOY_USER@$DEPLOY_HOST "echo '$DOCKERHUB_PASSWORD' | docker login -u bryanari --password-stdin"
     
+    # Pull latest images
     - ssh $DEPLOY_USER@$DEPLOY_HOST "docker pull $FRONTEND_IMAGE:latest"
     - ssh $DEPLOY_USER@$DEPLOY_HOST "docker pull $API_IMAGE:latest"
+    
+    # Stop old containers
     - ssh $DEPLOY_USER@$DEPLOY_HOST "cd /home/mulindwabryan.aliddeki/bloodlifesaver && docker-compose -f docker-compose.prod.yml down || true"
+    
+    # Start new containers
     - ssh $DEPLOY_USER@$DEPLOY_HOST "cd /home/mulindwabryan.aliddeki/bloodlifesaver && docker-compose -f docker-compose.prod.yml up -d"
     
+    # Health check
     - sleep 10
     - ssh $DEPLOY_USER@$DEPLOY_HOST "docker ps | grep bloodlifesaver"
     
