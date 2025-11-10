@@ -3,9 +3,9 @@ stages:
   - deploy
 
 variables:
+  DOCKER_HOST: unix:///var/run/docker.sock
   DOCKER_DRIVER: overlay2
   DOCKER_TLS_CERTDIR: ""
-  DOCKER_HOST: tcp://docker:2375
   FRONTEND_IMAGE: bryanari/bloodlifesaver-frontend
   API_IMAGE: bryanari/bloodlifesaver-api
 
@@ -18,9 +18,7 @@ build:
   stage: build
   script:
     # Login to DockerHub
-    - echo "$DOCKERHUB_PASSWORD" > /tmp/docker_pass.txt
-    - cat /tmp/docker_pass.txt | docker login -u bryanari --password-stdin
-    - rm /tmp/docker_pass.txt
+    - echo $DOCKERHUB_PASSWORD | docker login -u bryanari --password-stdin
     
     # Generate version tag
     - export VERSION=$(date +%Y%m%d-%H%M%S)
@@ -60,9 +58,9 @@ deploy:
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
     
-    # Add private key
-    - cp $SSH_PRIVATE_KEY ~/.ssh/id_ed25519
-    - chmod 600 ~/.ssh/id_ed25519
+    # Add private key (with quotes like working version)
+    - cp "$SSH_PRIVATE_KEY" ~/.ssh/id_ed25519
+    - chmod 600 ~/.ssh/id_ecdsa
     - ssh-add ~/.ssh/id_ed25519
     
     # Add server to known hosts
@@ -74,11 +72,10 @@ deploy:
     - export VERSION=$(cat version.txt)
     
     # Create deployment directory on server
-    - ssh $DEPLOY_USER@$DEPLOY_HOST "mkdir -p /home/mulindwabryan.aliddeki/bloodlifesaver"
+    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p /home/mulindwabryan.aliddeki/bloodlifesaver"
     
     # Create .env file on server
-    - |
-      ssh $DEPLOY_USER@$DEPLOY_HOST "cat > /home/mulindwabryan.aliddeki/bloodlifesaver/.env << 'ENVEOF'
+    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "cat > /home/mulindwabryan.aliddeki/bloodlifesaver/.env << 'ENVEOF'
       SUPABASE_DB_URL=$SUPABASE_DB_URL
       SUPABASE_URL=$SUPABASE_URL
       SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
@@ -89,24 +86,22 @@ deploy:
       ENVEOF"
     
     # Copy docker-compose file to server
-    - scp docker-compose.prod.yml $DEPLOY_USER@$DEPLOY_HOST:/home/mulindwabryan.aliddeki/bloodlifesaver/
+    - scp docker-compose.prod.yml "$DEPLOY_USER@$DEPLOY_HOST:/home/mulindwabryan.aliddeki/bloodlifesaver/"
     
     # Login to DockerHub on server
-    - ssh $DEPLOY_USER@$DEPLOY_HOST "echo '$DOCKERHUB_PASSWORD' | docker login -u bryanari --password-stdin"
+    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "echo '$DOCKERHUB_PASSWORD' | docker login -u bryanari --password-stdin"
     
     # Pull latest images
-    - ssh $DEPLOY_USER@$DEPLOY_HOST "docker pull $FRONTEND_IMAGE:latest"
-    - ssh $DEPLOY_USER@$DEPLOY_HOST "docker pull $API_IMAGE:latest"
+    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "docker pull $FRONTEND_IMAGE:latest"
+    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "docker pull $API_IMAGE:latest"
     
-    # Stop old containers
-    - ssh $DEPLOY_USER@$DEPLOY_HOST "cd /home/mulindwabryan.aliddeki/bloodlifesaver && docker-compose -f docker-compose.prod.yml down || true"
-    
-    # Start new containers
-    - ssh $DEPLOY_USER@$DEPLOY_HOST "cd /home/mulindwabryan.aliddeki/bloodlifesaver && docker-compose -f docker-compose.prod.yml up -d"
+    # Navigate to deployment directory and start services
+    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "cd /home/mulindwabryan.aliddeki/bloodlifesaver && docker compose -f docker-compose.prod.yml down || true"
+    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "cd /home/mulindwabryan.aliddeki/bloodlifesaver && docker compose -f docker-compose.prod.yml up -d"
     
     # Health check
     - sleep 10
-    - ssh $DEPLOY_USER@$DEPLOY_HOST "docker ps | grep bloodlifesaver"
+    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "docker ps | grep bloodlifesaver"
     
   only:
     - main
