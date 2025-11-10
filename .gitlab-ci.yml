@@ -5,13 +5,11 @@ stages:
 variables:
   DOCKER_DRIVER: overlay2
   DOCKER_TLS_CERTDIR: ""
+  DOCKER_HOST: tcp://docker:2375
   FRONTEND_IMAGE: bryanari/bloodlifesaver-frontend
   API_IMAGE: bryanari/bloodlifesaver-api
 
 image: docker:24.0.7
-
-services:
-  - docker:24.0.7-dind
 
 before_script:
   - docker info
@@ -20,7 +18,9 @@ build:
   stage: build
   script:
     # Login to DockerHub
-    - echo "$DOCKERHUB_PASSWORD" | docker login -u bryanari --password-stdin
+    - echo "$DOCKERHUB_PASSWORD" > /tmp/docker_pass.txt
+    - cat /tmp/docker_pass.txt | docker login -u bryanari --password-stdin
+    - rm /tmp/docker_pass.txt
     
     # Generate version tag
     - export VERSION=$(date +%Y%m%d-%H%M%S)
@@ -78,7 +78,7 @@ deploy:
     
     # Create .env file on server
     - |
-      ssh $DEPLOY_USER@$DEPLOY_HOST "cat > /home/mulindwabryan.aliddeki/bloodlifesaver/.env << 'EOF'
+      ssh $DEPLOY_USER@$DEPLOY_HOST "cat > /home/mulindwabryan.aliddeki/bloodlifesaver/.env << 'ENVEOF'
       SUPABASE_DB_URL=$SUPABASE_DB_URL
       SUPABASE_URL=$SUPABASE_URL
       SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
@@ -86,7 +86,7 @@ deploy:
       API_PORT=$API_PORT
       NEXT_PUBLIC_API_URL=http://ldapgit.cranecloud.io:31083
       NODE_ENV=production
-      EOF"
+      ENVEOF"
     
     # Copy docker-compose file to server
     - scp docker-compose.prod.yml $DEPLOY_USER@$DEPLOY_HOST:/home/mulindwabryan.aliddeki/bloodlifesaver/
