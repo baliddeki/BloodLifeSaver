@@ -1,5 +1,4 @@
 stages:
-  - test
   - build
   - deploy
 
@@ -14,33 +13,19 @@ image: docker:24.0.7
 before_script:
   - docker info
 
-test_frontend:
-  stage: test
-  script:
-    - cd frontend
-    - docker run --rm -v $(pwd):/app -w /app node:20-alpine sh -c "npm ci --legacy-peer-deps && npm run build"
-  only:
-    - main
-
-test_api:
-  stage: test
-  script:
-    - cd api
-    - docker run --rm -v $(pwd):/app -w /app node:20-alpine sh -c "npm install --legacy-peer-deps && npm run build"
-  only:
-    - main
-
 build:
   stage: build
   script:
     - echo $DOCKERHUB_PASSWORD | docker login -u bryanari --password-stdin
     - export VERSION=$(date +%Y%m%d-%H%M%S)
     
+    # Build frontend (build fails if code has errors)
     - cd frontend
-    - docker build -t $FRONTEND_IMAGE:$VERSION -t $FRONTEND_IMAGE:latest .
+    - docker build --build-arg NEXT_PUBLIC_API_URL=http://ldapgit.cranecloud.io:31083 -t $FRONTEND_IMAGE:$VERSION -t $FRONTEND_IMAGE:latest .
     - docker push $FRONTEND_IMAGE:$VERSION
     - docker push $FRONTEND_IMAGE:latest
     
+    # Build API (build fails if code has errors)
     - cd ../api
     - docker build -t $API_IMAGE:$VERSION -t $API_IMAGE:latest .
     - docker push $API_IMAGE:$VERSION
@@ -61,7 +46,6 @@ deploy:
     - eval $(ssh-agent -s)
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
-    # Copy file directly (not echo)
     - cp $SSH_PRIVATE_KEY ~/.ssh/id_ed25519
     - chmod 600 ~/.ssh/id_ed25519
     - ssh-add ~/.ssh/id_ed25519
