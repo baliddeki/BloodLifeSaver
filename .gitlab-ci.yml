@@ -44,7 +44,7 @@ build:
     expire_in: 1 hour
   only:
     - main
-    
+
 deploy:
   stage: deploy
   before_script:
@@ -69,6 +69,7 @@ deploy:
     - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "echo 'SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY' >> /home/mulindwabryan.aliddeki/bloodlifesaver/.env"
     - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "echo 'JWT_SECRET=$JWT_SECRET' >> /home/mulindwabryan.aliddeki/bloodlifesaver/.env"
     - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "echo 'API_PORT=$API_PORT' >> /home/mulindwabryan.aliddeki/bloodlifesaver/.env"
+    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "echo 'FRONTEND_URL=$FRONTEND_URL' >> /home/mulindwabryan.aliddeki/bloodlifesaver/.env"
     - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "echo 'NEXT_PUBLIC_API_URL=http://ldapgit.cranecloud.io:31083' >> /home/mulindwabryan.aliddeki/bloodlifesaver/.env"
     - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "echo 'NODE_ENV=production' >> /home/mulindwabryan.aliddeki/bloodlifesaver/.env"
     
