@@ -44,62 +44,44 @@ build:
     expire_in: 1 hour
   only:
     - main
-
+    
 deploy:
   stage: deploy
   before_script:
-    # Install SSH client
     - apk add --no-cache openssh-client
-    
-    # Setup SSH agent
     - eval $(ssh-agent -s)
-    
-    # Create SSH directory
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
-    
-    # Add private key
     - cp "$SSH_PRIVATE_KEY" ~/.ssh/id_ed25519
     - chmod 600 ~/.ssh/id_ed25519
     - ssh-add ~/.ssh/id_ed25519
-    
-    # Add server to known hosts
     - ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
     - chmod 644 ~/.ssh/known_hosts
   
   script:
-    # Get version from build stage
     - export VERSION=$(cat version.txt)
     
-    # Create deployment directory on server
     - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p /home/mulindwabryan.aliddeki/bloodlifesaver"
     
-    # Create .env file on server
-    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "cat > /home/mulindwabryan.aliddeki/bloodlifesaver/.env << 'ENVEOF'
-      SUPABASE_DB_URL=$SUPABASE_DB_URL
-      SUPABASE_URL=$SUPABASE_URL
-      SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
-      JWT_SECRET=$JWT_SECRET
-      API_PORT=$API_PORT
-      NEXT_PUBLIC_API_URL=http://ldapgit.cranecloud.io:31083
-      NODE_ENV=production
-      ENVEOF"
+    # Create .env file line by line
+    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "echo 'SUPABASE_DB_URL=$SUPABASE_DB_URL' > /home/mulindwabryan.aliddeki/bloodlifesaver/.env"
+    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "echo 'SUPABASE_URL=$SUPABASE_URL' >> /home/mulindwabryan.aliddeki/bloodlifesaver/.env"
+    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "echo 'SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY' >> /home/mulindwabryan.aliddeki/bloodlifesaver/.env"
+    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "echo 'JWT_SECRET=$JWT_SECRET' >> /home/mulindwabryan.aliddeki/bloodlifesaver/.env"
+    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "echo 'API_PORT=$API_PORT' >> /home/mulindwabryan.aliddeki/bloodlifesaver/.env"
+    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "echo 'NEXT_PUBLIC_API_URL=http://ldapgit.cranecloud.io:31083' >> /home/mulindwabryan.aliddeki/bloodlifesaver/.env"
+    - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "echo 'NODE_ENV=production' >> /home/mulindwabryan.aliddeki/bloodlifesaver/.env"
     
-    # Copy docker-compose file to server
     - scp docker-compose.prod.yml "$DEPLOY_USER@$DEPLOY_HOST:/home/mulindwabryan.aliddeki/bloodlifesaver/"
     
-    # Login to DockerHub on server - use DOCKER_PASSWORD
     - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "echo '$DOCKER_PASSWORD' | docker login -u bryanari --password-stdin"
     
-    # Pull latest images
     - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "docker pull $FRONTEND_IMAGE:latest"
     - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "docker pull $API_IMAGE:latest"
     
-    # Navigate to deployment directory and start services
     - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "cd /home/mulindwabryan.aliddeki/bloodlifesaver && docker compose -f docker-compose.prod.yml down || true"
     - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "cd /home/mulindwabryan.aliddeki/bloodlifesaver && docker compose -f docker-compose.prod.yml up -d"
     
-    # Health check
     - sleep 10
     - ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "docker ps | grep bloodlifesaver"
     
